@@ -35,6 +35,11 @@ config AS_VPCLMULQDQ
 	help
 	  Supported by binutils >= 2.30 and LLVM integrated assembler
 
+config AS_KEYLOCKER
+	def_bool $(as-instr,encodekey256 %eax$(comma)%eax)
+	help
+	  Supported by binutils >= 2.36 and LLVM integrated assembler >= V12
+
 config AS_WRUSS
 	def_bool $(as-instr,wrussq %rax$(comma)(%rbx))
 	help
