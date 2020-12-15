@@ -732,7 +732,12 @@ enum mds_mitigations {
 	MDS_MITIGATION_VMWERV,
 };
 
-extern bool gds_ucode_mitigated(void);
+enum mitigation_info {
+	MITG_FULL,
+	MITG_LOCKED,
+};
+
+extern bool gds_ucode_mitigated(enum mitigation_info mitg);
 
 /*
  * Make previous memory operations globally visible before

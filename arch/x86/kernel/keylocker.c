@@ -114,6 +114,15 @@ void restore_keylocker(void)
 	valid_wrapping_key = false;
 }
 
+/* Check if Key Locker is secure enough to be used. */
+static bool __init secure_keylocker(void)
+{
+	if (boot_cpu_has_bug(X86_BUG_GDS) && !gds_ucode_mitigated(MITG_LOCKED))
+		return false;
+
+	return true;
+}
+
 static int __init init_keylocker(void)
 {
 	u32 eax, ebx, ecx, edx;
@@ -126,6 +135,9 @@ static int __init init_keylocker(void)
 		pr_debug("x86/keylocker: Not compatible with a hypervisor.\n");
 		goto clear_cap;
 	}
+
+	if (!secure_keylocker())
+		goto clear_cap;
 
 	cr4_set_bits(X86_CR4_KEYLOCKER);
 
