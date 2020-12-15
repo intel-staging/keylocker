@@ -7,6 +7,7 @@
 #include <linux/random.h>
 #include <linux/string.h>
 
+#include <asm/cpu.h>
 #include <asm/fpu/api.h>
 #include <asm/keylocker.h>
 #include <asm/msr.h>
@@ -112,6 +113,37 @@ void restore_keylocker(void)
 	valid_wrapping_key = false;
 }
 
+/*
+ * The mitigation is implemented at a microcode level. Ensure that the
+ * microcode update is applied and the mitigation is locked.
+ */
+static bool __init have_gds_mitigation(void)
+{
+	u64 mcu_ctrl;
+
+	/* GDS_CTRL is set if new microcode is loaded. */
+	if (!(x86_read_arch_cap_msr() & ARCH_CAP_GDS_CTRL))
+		goto vulnerable;
+
+	/* If GDS_MITG_LOCKED is set, GDS_MITG_DIS is forced to 0. */
+	rdmsrl(MSR_IA32_MCU_OPT_CTRL, mcu_ctrl);
+	if (mcu_ctrl & GDS_MITG_LOCKED)
+		return true;
+
+vulnerable:
+	pr_warn("x86/keylocker: Susceptible to the GDS vulnerability.\n");
+	return false;
+}
+
+/* Check if Key Locker is secure enough to be used. */
+static bool __init secure_keylocker(void)
+{
+	if (boot_cpu_has_bug(X86_BUG_GDS) && !have_gds_mitigation())
+		return false;
+
+	return true;
+}
+
 static int __init init_keylocker(void)
 {
 	u32 eax, ebx, ecx, edx;
@@ -124,6 +156,9 @@ static int __init init_keylocker(void)
 		pr_debug("x86/keylocker: Not compatible with a hypervisor.\n");
 		goto clear_cap;
 	}
+
+	if (!secure_keylocker())
+		goto clear_cap;
 
 	cr4_set_bits(X86_CR4_KEYLOCKER);
 
