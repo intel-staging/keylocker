@@ -746,8 +746,11 @@ static const char * const gds_strings[] = {
 	[GDS_MITIGATION_HYPERVISOR]	= "Unknown: Dependent on hypervisor status",
 };
 
-bool gds_ucode_mitigated(void)
+bool gds_ucode_mitigated(enum mitigation_info mitg)
 {
+	if (mitg == MITG_LOCKED)
+		return gds_mitigation == GDS_MITIGATION_FULL_LOCKED;
+
 	return (gds_mitigation == GDS_MITIGATION_FULL ||
 		gds_mitigation == GDS_MITIGATION_FULL_LOCKED);
 }
