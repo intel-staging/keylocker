@@ -3757,6 +3757,8 @@
 			kernel and module base offset ASLR (Address Space
 			Layout Randomization).
 
+	nokeylocker     [X86] Disable Key Locker hardware feature.
+
 	no-kvmapf	[X86,KVM] Disable paravirtualized asynchronous page
 			fault handling.
 
