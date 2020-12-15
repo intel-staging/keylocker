@@ -9,10 +9,25 @@
 
 #include <asm/fpu/api.h>
 #include <asm/keylocker.h>
+#include <asm/msr.h>
 #include <asm/processor.h>
 #include <asm/tlbflush.h>
 
 static struct iwkey wrapping_key __initdata;
+
+/*
+ * This flag is set when a wrapping key is successfully loaded. If a key
+ * restoration fails, it is reset. This state is exported to the crypto
+ * library, indicating whether Key Locker is usable. Thus, the feature
+ * can be soft-disabled based on this flag.
+ */
+static bool valid_wrapping_key;
+
+bool valid_keylocker(void)
+{
+	return valid_wrapping_key;
+}
+EXPORT_SYMBOL_GPL(valid_keylocker);
 
 static void __init generate_keylocker_data(void)
 {
@@ -38,9 +53,69 @@ static void __init load_keylocker(struct work_struct *unused)
 	kernel_fpu_end();
 }
 
+/**
+ * copy_keylocker - Copy the wrapping key from the backup.
+ *
+ * Returns:	true if successful, otherwise false.
+ */
+static bool copy_keylocker(void)
+{
+	u64 status;
+
+	wrmsrl(MSR_IA32_COPY_IWKEY_TO_LOCAL, 1);
+	rdmsrl(MSR_IA32_IWKEY_COPY_STATUS, status);
+	return !!(status & BIT(0));
+}
+
+/*
+ * On wakeup, APs copy a wrapping key after the boot CPU verifies a valid
+ * backup status through restore_keylocker(). Subsequently, they adhere
+ * to the error handling protocol by invalidating the flag.
+ */
+void setup_keylocker(void)
+{
+	if (!valid_wrapping_key)
+		return;
+
+	cr4_set_bits(X86_CR4_KEYLOCKER);
+
+	if (copy_keylocker())
+		return;
+
+	pr_err_once("x86/keylocker: Invalid copy status.\n");
+	valid_wrapping_key = false;
+}
+
+/* The boot CPU restores the wrapping key in the first place on wakeup. */
+void restore_keylocker(void)
+{
+	u64 backup_status;
+
+	if (!valid_wrapping_key)
+		return;
+
+	rdmsrl(MSR_IA32_IWKEY_BACKUP_STATUS, backup_status);
+	if (backup_status & BIT(0)) {
+		if (copy_keylocker())
+			return;
+		pr_err("x86/keylocker: Invalid copy state.\n");
+	} else {
+		pr_err("x86/keylocker: The key backup access failed with %s.\n",
+		       (backup_status & BIT(2)) ? "read error" : "invalid status");
+	}
+
+	/*
+	 * Invalidate the feature via this flag to indicate that the
+	 * crypto code should voluntarily stop using the feature, rather
+	 * than abruptly disabling it.
+	 */
+	valid_wrapping_key = false;
+}
+
 static int __init init_keylocker(void)
 {
 	u32 eax, ebx, ecx, edx;
+	bool backup_available;
 
 	if (!cpu_feature_enabled(X86_FEATURE_KEYLOCKER))
 		goto disable;
@@ -60,9 +135,23 @@ static int __init init_keylocker(void)
 		goto clear_cap;
 	}
 
+	/*
+	 * The backup is critical for restoring the wrapping key upon
+	 * wakeup.
+	 */
+	backup_available = !!(ebx & KEYLOCKER_CPUID_EBX_BACKUP);
+	if (!backup_available && IS_ENABLED(CONFIG_SUSPEND)) {
+		pr_debug("x86/keylocker: No key backup with possible S3/4.\n");
+		goto clear_cap;
+	}
+
 	generate_keylocker_data();
 	schedule_on_each_cpu(load_keylocker);
 	destroy_keylocker_data();
+	valid_wrapping_key = true;
+
+	if (backup_available)
+		wrmsrl(MSR_IA32_BACKUP_IWKEY_TO_PLATFORM, 1);
 
 	pr_info_once("x86/keylocker: Enabled.\n");
 	return 0;
