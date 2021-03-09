@@ -35,7 +35,7 @@
 #include <linux/workqueue.h>
 #include <linux/spinlock.h>
 #include <linux/static_call.h>
-
+#include "aesni-xts.h"
 
 #define AESNI_ALIGN	16
 #define AESNI_ALIGN_ATTR __attribute__ ((__aligned__(AESNI_ALIGN)))
@@ -864,8 +864,8 @@ static int helper_rfc4106_decrypt(struct aead_request *req)
 }
 #endif
 
-static int xts_setkey_aesni(struct crypto_skcipher *tfm, const u8 *key,
-			    unsigned int keylen)
+int xts_setkey_aesni(struct crypto_skcipher *tfm, const u8 *key,
+		     unsigned int keylen)
 {
 	struct aesni_xts_ctx *ctx = aes_xts_ctx(tfm);
 	int err;
@@ -884,6 +884,7 @@ static int xts_setkey_aesni(struct crypto_skcipher *tfm, const u8 *key,
 	/* second half of xts-key is for tweak */
 	return aes_set_key_common(&ctx->tweak_ctx, key + keylen, keylen);
 }
+EXPORT_SYMBOL_GPL(xts_setkey_aesni);
 
 typedef void (*xts_encrypt_iv_func)(const struct crypto_aes_ctx *tweak_key,
 				    u8 iv[AES_BLOCK_SIZE]);
@@ -1020,15 +1021,17 @@ static void aesni_xts_decrypt(const struct crypto_aes_ctx *key,
 	aesni_xts_dec(key, dst, src, len, tweak);
 }
 
-static int xts_encrypt_aesni(struct skcipher_request *req)
+int xts_encrypt_aesni(struct skcipher_request *req)
 {
 	return xts_crypt(req, aesni_xts_encrypt_iv, aesni_xts_encrypt);
 }
+EXPORT_SYMBOL_GPL(xts_encrypt_aesni);
 
-static int xts_decrypt_aesni(struct skcipher_request *req)
+int xts_decrypt_aesni(struct skcipher_request *req)
 {
 	return xts_crypt(req, aesni_xts_encrypt_iv, aesni_xts_decrypt);
 }
+EXPORT_SYMBOL_GPL(xts_decrypt_aesni);
 
 static struct crypto_alg aesni_cipher_alg = {
 	.cra_name		= "aes",
