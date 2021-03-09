@@ -19,16 +19,17 @@
 #include <crypto/internal/aead.h>
 #include <crypto/internal/simd.h>
 
+#include "aeskl-intel_glue.h"
+
 #define AES_ALIGN		16
 #define AES_ALIGN_ATTR		__attribute__((__aligned__(AES_ALIGN)))
 #define AES_ALIGN_EXTRA		((AES_ALIGN - 1) & ~(CRYPTO_MINALIGN - 1))
 #define XTS_AES_CTX_SIZE	(sizeof(struct aes_xts_ctx) + AES_ALIGN_EXTRA)
 
-/*
- * Preserve data types for various AES implementations available in x86
- */
+/* Data types for the two AES implementations available in x86 */
 union x86_aes_ctx {
 	struct crypto_aes_ctx aesni;
+	struct aeskl_ctx aeskl;
 };
 
 struct aes_xts_ctx {

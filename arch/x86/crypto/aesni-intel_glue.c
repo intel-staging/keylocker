@@ -37,6 +37,7 @@
 #include <linux/static_call.h>
 
 #include "aes-helper_glue.h"
+#include "aesni-intel_glue.h"
 
 #define RFC4106_HASH_SUBKEY_SIZE 16
 #define AES_BLOCK_MASK (~(AES_BLOCK_SIZE - 1))
@@ -72,9 +73,6 @@ struct gcm_context_data {
 	u8 hash_keys[GCM_BLOCK_LEN * 16];
 };
 
-asmlinkage void aesni_set_key(struct crypto_aes_ctx *ctx, const u8 *in_key,
-			      unsigned int key_len);
-asmlinkage void __aesni_enc(const void *ctx, u8 *out, const u8 *in);
 asmlinkage void __aesni_dec(const void *ctx, u8 *out, const u8 *in);
 asmlinkage void aesni_ecb_enc(struct crypto_aes_ctx *ctx, u8 *out,
 			      const u8 *in, unsigned int len);
@@ -89,20 +87,8 @@ asmlinkage void aesni_cts_cbc_enc(struct crypto_aes_ctx *ctx, u8 *out,
 asmlinkage void aesni_cts_cbc_dec(struct crypto_aes_ctx *ctx, u8 *out,
 				  const u8 *in, unsigned int len, u8 *iv);
 
-static inline int aesni_enc(const void *ctx, u8 *out, const u8 *in)
-{
-	__aesni_enc(ctx, out, in);
-	return 0;
-}
-
 #define AVX_GEN2_OPTSIZE 640
 #define AVX_GEN4_OPTSIZE 4096
-
-asmlinkage void __aesni_xts_encrypt(const struct crypto_aes_ctx *ctx, u8 *out,
-				    const u8 *in, unsigned int len, u8 *iv);
-
-asmlinkage void __aesni_xts_decrypt(const struct crypto_aes_ctx *ctx, u8 *out,
-				    const u8 *in, unsigned int len, u8 *iv);
 
 #ifdef CONFIG_X86_64
 
@@ -269,20 +255,6 @@ static inline int aesni_xts_setkey(union x86_aes_ctx *ctx,
 				   const u8 *in_key, unsigned int key_len)
 {
 	return aes_set_key_common(&ctx->aesni, in_key, key_len);
-}
-
-static inline int aesni_xts_encrypt(const union x86_aes_ctx *ctx, u8 *out, const u8 *in,
-				    unsigned int len, u8 *iv)
-{
-	__aesni_xts_encrypt(&ctx->aesni, out, in, len, iv);
-	return 0;
-}
-
-static inline int aesni_xts_decrypt(const union x86_aes_ctx *ctx, u8 *out, const u8 *in,
-				    unsigned int len, u8 *iv)
-{
-	__aesni_xts_decrypt(&ctx->aesni, out, in, len, iv);
-	return 0;
 }
 
 static int aesni_skcipher_setkey(struct crypto_skcipher *tfm, const u8 *key,
