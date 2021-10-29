@@ -9,6 +9,7 @@
 #include <linux/errno.h>
 #include <linux/irqflags.h>
 #include <linux/jump_label.h>
+#include <asm/keylocker.h>
 
 /*
  * The compiler should not reorder volatile asm statements with respect to each
@@ -299,6 +300,33 @@ static __always_inline void tile_release(void)
 	 * version >= 2.36.
 	 */
 	asm volatile(".byte 0xc4, 0xe2, 0x78, 0x49, 0xc0");
+}
+
+/**
+ * load_xmm_iwkey - Load a CPU-internal wrapping key into XMM registers.
+ * @key:	A pointer to a struct iwkey containing the key data.
+ *
+ * The caller is responsible for invoking kernel_fpu_begin() before.
+ */
+static inline void load_xmm_iwkey(struct iwkey *key)
+{
+	struct reg_128_bit zeros = { 0 };
+
+	asm volatile ("movdqu %0, %%xmm0; movdqu %1, %%xmm1; movdqu %2, %%xmm2;"
+		      :: "m"(key->integrity_key), "m"(key->encryption_key[0]),
+			 "m"(key->encryption_key[1]));
+
+	/*
+	 * 'LOADIWKEY %xmm1,%xmm2' loads a key from XMM0-2 into a
+	 * software-invisible CPU state. With zero in EAX, CPU does not
+	 * perform hardware randomization and allows key backup.
+	 *
+	 * This instruction is supported by binutils >= 2.36.
+	 */
+	asm volatile (".byte 0xf3,0x0f,0x38,0xdc,0xd1" :: "a"(0));
+
+	asm volatile ("movdqu %0, %%xmm0; movdqu %0, %%xmm1; movdqu %0, %%xmm2;"
+		      :: "m"(zeros));
 }
 
 #endif /* __KERNEL__ */
