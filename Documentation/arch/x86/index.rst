@@ -42,3 +42,4 @@ x86-specific Documentation
    features
    elf_auxvec
    xstate
+   keylocker
