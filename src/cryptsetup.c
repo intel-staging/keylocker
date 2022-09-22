@@ -1388,6 +1388,35 @@ out:
 	return r;
 }
 
+static int action_luksChangeCipher(void)
+{
+	char cipher_name[MAX_CIPHER_LEN], cipher_mode[MAX_CIPHER_LEN];
+	struct crypt_device *cd = NULL;
+	int r = 0;
+
+	if (!opt_cipher)
+		goto out;
+
+	r = crypt_parse_name_and_mode(opt_cipher, cipher_name, NULL, cipher_mode);
+	if (r < 0) {
+		log_err(_("No known cipher specification pattern detected.\n"));
+		return r;
+	}
+
+	if ((r = crypt_init(&cd, uuid_or_device_header(NULL))))
+		goto out;
+
+	if ((r = crypt_load(cd, luksType(opt_type), NULL)))
+		goto out;
+
+	if ((r = crypt_change_cipher(cd, cipher_name, cipher_mode)))
+		goto out;
+
+out:
+	crypt_free(cd);
+	return r;
+}
+
 static int action_luksChangeKey(void)
 {
 	const char *opt_new_key_file = (action_argc > 1 ? action_argv[1] : NULL);
@@ -1927,6 +1956,7 @@ static struct action_type {
 	{ "luksAddKey",   action_luksAddKey,   1, 1, N_("<device> [<new key file>]"), N_("add key to LUKS device") },
 	{ "luksRemoveKey",action_luksRemoveKey,1, 1, N_("<device> [<key file>]"), N_("removes supplied key or key file from LUKS device") },
 	{ "luksChangeKey",action_luksChangeKey,1, 1, N_("<device> [<key file>]"), N_("changes supplied key or key file of LUKS device") },
+	{ "luksChangeCipher",action_luksChangeCipher,1,1,N_("<device> <cipher>"), N_("experimental option to switch cipher from the LUKS header") },
 	{ "luksKillSlot", action_luksKillSlot, 2, 1, N_("<device> <key slot>"), N_("wipes key with number <key slot> from LUKS device") },
 	{ "luksUUID",     action_luksUUID,     1, 0, N_("<device>"), N_("print UUID of LUKS device") },
 	{ "isLuks",       action_isLuks,       1, 0, N_("<device>"), N_("tests <device> for LUKS partition header") },

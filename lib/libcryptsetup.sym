@@ -25,6 +25,8 @@ CRYPTSETUP_2.0 {
 		crypt_resume_by_keyfile_device_offset;
 		crypt_free;
 
+		crypt_change_cipher;
+
 		crypt_keyslot_add_by_passphrase;
 		crypt_keyslot_change_by_passphrase;
 		crypt_keyslot_add_by_keyfile;

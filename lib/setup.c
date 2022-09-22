@@ -2496,6 +2496,32 @@ int crypt_resume_by_keyfile_offset(struct crypt_device *cd,
 				      keyfile, keyfile_size, keyfile_offset);
 }
 
+int crypt_change_cipher(struct crypt_device *cd,
+			const char *name,
+			const char *mode)
+{
+	/* TODO: LUKS1-specific for now */
+	struct luks_phdr *hdr = &cd->u.luks1.hdr;
+	int r = 0;
+
+	if (!name || !mode)
+		return -EINVAL;
+
+	if ((r = LUKS_read_phdr(hdr, 1, 0, cd))) {
+		log_std(cd, "luks header read error\n");
+		return r;
+	}
+
+	strncpy(hdr->cipherName, name, sizeof(hdr->cipherName) - 1);
+	strncpy(hdr->cipherMode, mode, sizeof(hdr->cipherMode) - 1);
+
+	if ((r = LUKS_write_phdr(hdr, cd))) {
+		log_std(cd, "luks header write error\n");
+	}
+
+	return r;
+}
+
 /*
  * Keyslot manipulation
  */

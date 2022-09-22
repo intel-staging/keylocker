@@ -781,6 +781,20 @@ int crypt_keyslot_change_by_passphrase(struct crypt_device *cd,
 	size_t new_passphrase_size);
 
 /**
+ * Edit cipher string that is recored in the LUKS header.
+ *
+ * @param cd crypt device handle
+ * @param name the new cipher name
+ * @param mode the new cipher mode
+ *
+ * @note This function is experimental. Maybe this could be part of generic
+ * luksChange infrastructure.
+ */
+int crypt_change_cipher(struct crypt_device *cd,
+	const char *name,
+	const char *mode);
+
+/**
 * Add key slot using provided key file path.
  *
  * @pre @e cd contains initialized and formatted LUKS device context
