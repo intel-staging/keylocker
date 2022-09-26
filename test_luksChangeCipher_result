@@ -1,0 +1,117 @@
+
+####################################
+# start of dm-crypt test for
+####################################
+# 1. file (container) creation
+####################################
+
+####################################
+# 2. convert the file as encryptable (virtual) disk block
+####################################
+
+
+WARNING!
+========
+This will overwrite data on ./test irrevocably.
+
+Are you sure? (Type uppercase yes): YES
+Enter passphrase for ./test:
+Verify passphrase:
+Command successful.
+./test: LUKS encrypted file, ver 1 [capi:xts, aes-aesni-plain, sha256] 
+UUID: 55d78fde-3597-4a8a-85fb-4c58fee8fe4a
+####################################
+# 3. format the virtual disk block with ext4
+####################################
+
+Enter passphrase for ./test:
+Key slot 0 unlocked.
+Command successful.
+mke2fs 1.46.5 (30-Dec-2021)
+Creating filesystem with 3584 4k blocks and 3584 inodes
+
+Allocating group tables: done
+Writing inode tables: done
+Creating journal (1024 blocks): done
+Writing superblocks and filesystem accounting information: done
+
+####################################
+# 3. mount the disk block
+####################################
+
+Filesystem           Size  Used Avail Use% Mounted on
+tmpfs                1.6G  2.1M  1.6G   1% /run
+/dev/nvme0n1p2       469G  5.2G  440G   2% /
+tmpfs                7.8G     0  7.8G   0% /dev/shm
+tmpfs                5.0M     0  5.0M   0% /run/lock
+/dev/nvme0n1p1       537M  5.3M  532M   1% /boot/efi
+tmpfs                1.6G  4.0K  1.6G   1% /run/user/0
+/dev/mapper/volume1  9.2M   24K  8.2M   1% /root/cryptsetup/mnt
+####################################
+# 4. copying test file (this is test file)
+####################################
+
+####################################
+# 5. umount and close the block (as encrypted)
+####################################
+
+Command successful.
+####################################
+# 6. wait 5 sec and mount and cat the file
+####################################
+
+Enter passphrase for ./test:
+Key slot 0 unlocked.
+Command successful.
+this is test file
+####################################
+# 7. dump extra information
+####################################
+0 28672 crypt capi:xts-aes-aesni-plain 
+bc96d17ee48726f22e4fdaf306b3444a06bb4c8e96726ff7e1ea5a71e23ebfea 0 7:6 4096
+
+WARNING!
+========
+Header dump with volume key is sensitive information
+which allows access to encrypted partition without passphrase.
+This dump should be always stored encrypted on safe place.
+
+Are you sure? (Type uppercase yes): YES
+Enter passphrase for ./test:
+Key slot 0 unlocked.
+LUKS header information for /dev/loop7
+Cipher name:    capi:xts
+Cipher mode:    aes-aesni-plain
+Payload offset: 4096
+UUID:           55d78fde-3597-4a8a-85fb-4c58fee8fe4a
+MK bits:        256
+MK dump:        bc 96 d1 7e e4 87 26 f2 2e 4f da f3 06 b3 44 4a
+                06 bb 4c 8e 96 72 6f f7 e1 ea 5a 71 e2 3e bf ea
+Command successful.
+####################################
+# 8. switch to kl and dump
+####################################
+
+WARNING!
+========
+Header dump with volume key is sensitive information
+which allows access to encrypted partition without passphrase.
+This dump should be always stored encrypted on safe place.
+
+Are you sure? (Type uppercase yes): YES
+Enter passphrase for ./test:
+Key slot 0 unlocked.
+LUKS header information for /dev/loop7
+Cipher name:    capi:xts
+Cipher mode:    aes-aeskl-plain
+Payload offset: 4096
+UUID:           55d78fde-3597-4a8a-85fb-4c58fee8fe4a
+MK bits:        256
+MK dump:        bc 96 d1 7e e4 87 26 f2 2e 4f da f3 06 b3 44 4a
+                06 bb 4c 8e 96 72 6f f7 e1 ea 5a 71 e2 3e bf ea
+Command successful.
+this is test file
+####################################
+# end of test
+####################################
+Command successful.
