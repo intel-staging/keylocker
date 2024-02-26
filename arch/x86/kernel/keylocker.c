@@ -135,10 +135,27 @@ vulnerable:
 	return false;
 }
 
+/*
+ * IA32_ARCH_CAPABILITIES MSR is retrieved during the setting of
+ * X86_BUG_RFDS. Ensure that the mitigation is applied to flush CPU
+ * buffers by checking the flag.
+ */
+static bool __init have_rfds_mitigation(void)
+{
+	if (boot_cpu_has(X86_FEATURE_CLEAR_CPU_BUF))
+		return true;
+
+	pr_warn("x86/keylocker: Susceptible to the RFDS vulnerability.\n");
+	return false;
+}
+
 /* Check if Key Locker is secure enough to be used. */
 static bool __init secure_keylocker(void)
 {
 	if (boot_cpu_has_bug(X86_BUG_GDS) && !have_gds_mitigation())
+		return false;
+
+	if (boot_cpu_has_bug(X86_BUG_RFDS) && !have_rfds_mitigation())
 		return false;
 
 	return true;
