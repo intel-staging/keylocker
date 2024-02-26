@@ -120,6 +120,9 @@ static bool __init secure_keylocker(void)
 	if (boot_cpu_has_bug(X86_BUG_GDS) && !gds_ucode_mitigated(MITG_LOCKED))
 		return false;
 
+	if (boot_cpu_has_bug(X86_BUG_RFDS) && rfds_mitigation != RFDS_MITIGATION_VERW)
+		return false;
+
 	return true;
 }
 
