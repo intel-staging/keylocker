@@ -739,6 +739,14 @@ enum mitigation_info {
 
 extern bool gds_ucode_mitigated(enum mitigation_info mitg);
 
+enum rfds_mitigations {
+	RFDS_MITIGATION_OFF,
+	RFDS_MITIGATION_VERW,
+	RFDS_MITIGATION_UCODE_NEEDED,
+};
+
+extern enum rfds_mitigations rfds_mitigation;
+
 /*
  * Make previous memory operations globally visible before
  * a WRMSR.
