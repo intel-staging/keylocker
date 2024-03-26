@@ -71,6 +71,8 @@ static bool copy_keylocker(void)
  * On wakeup, APs copy a wrapping key after the boot CPU verifies a valid
  * backup status through restore_keylocker(). Subsequently, they adhere
  * to the error handling protocol by invalidating the flag.
+ *
+ * This setup routine is also invoked in the hotplug bringup path.
  */
 void setup_keylocker(void)
 {
@@ -137,11 +139,11 @@ static int __init init_keylocker(void)
 
 	/*
 	 * The backup is critical for restoring the wrapping key upon
-	 * wakeup.
+	 * wakeup or during hotplug bringup.
 	 */
 	backup_available = !!(ebx & KEYLOCKER_CPUID_EBX_BACKUP);
-	if (!backup_available && IS_ENABLED(CONFIG_SUSPEND)) {
-		pr_debug("x86/keylocker: No key backup with possible S3/4.\n");
+	if (!backup_available && (IS_ENABLED(CONFIG_SUSPEND) || IS_ENABLED(CONFIG_HOTPLUG_CPU))) {
+		pr_debug("x86/keylocker: No key backup with possible S3/4 or CPU hotplug.\n");
 		goto clear_cap;
 	}
 
